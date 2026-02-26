@@ -12,16 +12,16 @@ export const SITE: Site = {
 }
 
 export const NAV_LINKS: SocialLink[] = [
-  {
-    href: '/blog',
+ {
+    href: '/random-talk/blog/', // 確保有專案名，且結尾有斜線
     label: 'blog',
   },
   {
-    href: '/authors',
+    href: '/random-talk/authors/',
     label: 'authors',
   },
   {
-    href: '/about',
+    href: '/random-talk/about/',
     label: 'about',
   },
 ]
