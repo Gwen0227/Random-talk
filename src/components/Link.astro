@@ -9,7 +9,16 @@ interface Props {
   [key: string]: any
 }
 
-const { href, external, class: className, underline, ...rest } = Astro.props
+let { href, external, class: className, underline, ...rest } = Astro.props
+
+// --- 路徑修復邏輯開始 ---
+const base = import.meta.env.BASE_URL.replace(/\/$/, '') // 取得 /random-talk
+
+// 如果是內部連結（以 / 開頭），且還沒加上 base，就自動補上
+if (href.startsWith('/') && !href.startsWith(base) && !href.startsWith('http')) {
+  href = `${base}${href}`.replace(/\/+/g, '/') // 確保不會出現雙斜線
+}
+// --- 路覽修復邏輯結束 ---
 ---
 
 <a
