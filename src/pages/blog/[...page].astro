@@ -2,7 +2,7 @@
 import BlogCard from '@/components/BlogCard.astro'
 import Breadcrumbs from '@/components/Breadcrumbs.astro'
 import PageHead from '@/components/PageHead.astro'
-# 移除 PaginationComponent 引入，因為用不到了
+// 移除 PaginationComponent 引入，因為用不到了
 import { SITE } from '@/consts'
 import Layout from '@/layouts/Layout.astro'
 import { getAllPosts, groupPostsByYear } from '@/lib/data-utils'
@@ -23,12 +23,7 @@ const postsByYear = groupPostsByYear(page.data)
 const years = Object.keys(postsByYear).sort((a, b) => parseInt(b) - parseInt(a))
 ---
 
-<Layout 
-  id="main-layout" 
-  class="max-w-3xl" 
-  data-current-page={page.currentPage} 
-  data-total-pages={page.lastPage}
->
+<Layout class="max-w-3xl">
   <PageHead slot="head" title="Blog" />
   <Breadcrumbs
     items={[
@@ -37,44 +32,49 @@ const years = Object.keys(postsByYear).sort((a, b) => parseInt(b) - parseInt(a))
     ]}
   />
 
-  <div id="post-container" class="flex min-h-[calc(100vh-18rem)] flex-col gap-y-8">
-    {
-      years.map((year) => (
-        <section class="flex flex-col gap-y-4">
-          <div class="font-medium text-muted-foreground">{year}</div>
-          <ul class="flex flex-col gap-4">
-            {postsByYear[year].map((post) => (
-              <li>
-                <BlogCard entry={post} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))
-    }
-  </div>
+  <div 
+    id="infinite-scroll-wrapper"
+    data-current-page={page.currentPage} 
+    data-total-pages={page.lastPage}
+  >
+    <div id="post-container" class="flex min-h-[calc(100vh-18rem)] flex-col gap-y-8">
+      {
+        years.map((year) => (
+          <section class="flex flex-col gap-y-4">
+            <div class="font-medium text-muted-foreground">{year}</div>
+            <ul class="flex flex-col gap-4">
+              {postsByYear[year].map((post) => (
+                <li>
+                  <BlogCard entry={post} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
+      }
+    </div>
 
-  <div id="scroll-sentinel" class="h-20 w-full flex justify-center items-center">
-    <div id="loader" class="hidden text-sm text-muted-foreground animate-pulse">
-      Loading more posts...
+    <div id="scroll-sentinel" class="h-20 w-full flex justify-center items-center">
+      <div id="loader" class="hidden text-sm text-muted-foreground animate-pulse">
+        Loading more posts...
+      </div>
     </div>
   </div>
 </Layout>
 
 <script>
   function setupInfiniteScroll() {
-    const layout = document.getElementById('main-layout');
+    const wrapper = document.getElementById('infinite-scroll-wrapper');
     const container = document.getElementById('post-container');
     const sentinel = document.getElementById('scroll-sentinel');
     const loader = document.getElementById('loader');
 
-    if (!layout || !container || !sentinel) return;
+    if (!wrapper || !container || !sentinel) return;
 
-    let currentPage = parseInt(layout.dataset.currentPage || '1');
-    const totalPages = parseInt(layout.dataset.totalPages || '1');
+    let currentPage = parseInt(wrapper.dataset.currentPage || '1');
+    const totalPages = parseInt(wrapper.dataset.totalPages || '1');
     let isLoading = false;
 
-    // 如果只有一頁，直接隱藏哨兵
     if (currentPage >= totalPages) {
       sentinel.style.display = 'none';
       return;
@@ -87,9 +87,8 @@ const years = Object.keys(postsByYear).sort((a, b) => parseInt(b) - parseInt(a))
         loader?.classList.remove('hidden');
 
         try {
-          // 抓取下一頁的內容
           const response = await fetch(`/blog/${currentPage}`);
-          if (!response.ok) throw new Error('Network response was not ok');
+          if (!response.ok) throw new Error('Next page not found');
           
           const html = await response.text();
           const parser = new DOMParser();
@@ -97,7 +96,6 @@ const years = Object.keys(postsByYear).sort((a, b) => parseInt(b) - parseInt(a))
           const newPosts = doc.getElementById('post-container');
 
           if (newPosts && container) {
-            // 將新抓到的年份/文章 HTML 直接附加進去
             container.innerHTML += newPosts.innerHTML;
           }
 
@@ -107,18 +105,19 @@ const years = Object.keys(postsByYear).sort((a, b) => parseInt(b) - parseInt(a))
           }
         } catch (error) {
           console.error('Error loading posts:', error);
+          observer.disconnect();
         } finally {
           isLoading = false;
           loader?.classList.add('hidden');
         }
       }
     }, {
-      rootMargin: '400px', // 提前載入，使用者體驗更好
+      rootMargin: '400px',
     });
 
     observer.observe(sentinel);
   }
 
-  // 支援 Astro 的 View Transitions
+  // 確保在 Astro 頁面載入時執行
   document.addEventListener('astro:page-load', setupInfiniteScroll);
 </script>
