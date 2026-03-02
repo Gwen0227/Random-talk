@@ -1,18 +1,21 @@
 ---
 import BlogCard from '@/components/BlogCard.astro'
-import Link from '@/components/Link.astro'
 import PageHead from '@/components/PageHead.astro'
-import { buttonVariants } from '@/components/ui/button'
 import { SITE } from '@/consts'
 import Layout from '@/layouts/Layout.astro'
-import { getRecentPosts } from '@/lib/data-utils'
+// 改用 getAllPosts 並進行分頁切片
+import { getAllPosts } from '@/lib/data-utils'
 
-const blog = await getRecentPosts(SITE.featuredPostCount)
+const allPosts = await getAllPosts()
+const postsPerPage = SITE.postsPerPage || 5
+const initialPosts = allPosts.slice(0, postsPerPage)
+const totalPages = Math.ceil(allPosts.length / postsPerPage)
 ---
 
 <Layout class="max-w-3xl">
   <PageHead slot="head" title="Home" />
-  <section class="rounded-lg border">
+  
+  <section class="rounded-lg border mb-8">
     <div class="flex flex-col space-y-1.5 p-6">
       <h3 class="text-3xl leading-none font-medium">er·u·dite</h3>
       <p class="text-muted-foreground text-sm">
@@ -20,66 +23,99 @@ const blog = await getRecentPosts(SITE.featuredPostCount)
       </p>
     </div>
     <div class="p-6 pt-0">
-      <p class="text-muted-foreground mb-2 text-sm">
-        astro-erudite is an opinionated, unstyled static blogging template built
-        with <Link
-          href="https://astro.build"
-          class="text-foreground"
-          external
-          underline>Astro</Link
-        >, <Link
-          href="https://tailwindcss.com"
-          class="text-foreground"
-          external
-          underline>Tailwind</Link
-        >, and <Link
-          href="https://ui.shadcn.com"
-          class="text-foreground"
-          external
-          underline>shadcn/ui</Link
-        >. Extraordinarily loosely based on the <Link
-          href="https://astro-micro.vercel.app/"
-          class="text-foreground"
-          external
-          underline>Astro Micro</Link
-        > theme.
-      </p>
       <p class="text-muted-foreground text-sm">
-        To use this template, check out the <Link
-          href="https://github.com/jktrn/astro-erudite"
-          class="text-foreground"
-          underline
-          external>GitHub</Link
-        > repository. To learn more about why this template exists, read this blog
-        post: <Link
-          href="/blog/the-state-of-static-blogs"
-          class="text-foreground"
-          underline>The State of Static Blogs in 2024</Link
-        >.
+        這是一個基於 Astro 的簡約部落格。
       </p>
     </div>
   </section>
+
   <section class="flex flex-col gap-y-4">
     <h2 class="text-2xl font-medium">Latest posts</h2>
-    <ul class="flex flex-col gap-y-4">
-      {
-        blog.map((post) => (
-          <li>
-            <BlogCard entry={post} />
-          </li>
-        ))
-      }
-    </ul>
-    <div class="flex justify-center">
-      <Link
-        href="/blog"
-        class={buttonVariants({ variant: 'ghost' }) + ' group'}
-      >
-        See all posts <span
-          class="ml-1.5 transition-transform group-hover:translate-x-1"
-          >&rarr;</span
-        >
-      </Link>
+    
+    <div 
+      id="infinite-scroll-wrapper"
+      data-current-page="1" 
+      data-total-pages={totalPages}
+    >
+      <ul id="post-container" class="flex flex-col gap-y-4">
+        {
+          initialPosts.map((post) => (
+            <li>
+              <BlogCard entry={post} />
+            </li>
+          ))
+        }
+      </ul>
+
+      <div id="scroll-sentinel" class="h-20 w-full flex justify-center items-center">
+        <div id="loader" class="hidden text-sm text-muted-foreground animate-pulse">
+          Loading more posts...
+        </div>
+      </div>
     </div>
   </section>
 </Layout>
+
+<script>
+  function setupInfiniteScroll() {
+    const wrapper = document.getElementById('infinite-scroll-wrapper');
+    const container = document.getElementById('post-container');
+    const sentinel = document.getElementById('scroll-sentinel');
+    const loader = document.getElementById('loader');
+
+    if (!wrapper || !container || !sentinel) return;
+
+    let currentPage = parseInt(wrapper.dataset.currentPage || '1');
+    const totalPages = parseInt(wrapper.dataset.totalPages || '1');
+    let isLoading = false;
+
+    if (currentPage >= totalPages) {
+      sentinel.style.display = 'none';
+      return;
+    }
+
+    const observer = new IntersectionObserver(async (entries) => {
+      if (entries[0].isIntersecting && !isLoading && currentPage < totalPages) {
+        isLoading = true;
+        currentPage++;
+        loader?.classList.remove('hidden');
+
+        try {
+          // 注意：首頁加載的是 /blog/2, /blog/3 的內容
+          const response = await fetch(`./blog/${currentPage}`);
+          if (!response.ok) throw new Error('Next page not found');
+          
+          const html = await response.text();
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          
+          // 從 /blog/x 頁面中抓取 post-container 裡的 li 列表
+          const newPosts = doc.querySelectorAll('#post-container li');
+
+          if (newPosts.length > 0 && container) {
+            newPosts.forEach(post => {
+              container.appendChild(post.cloneNode(true));
+            });
+          }
+
+          if (currentPage >= totalPages) {
+            observer.disconnect();
+            sentinel.style.display = 'none';
+          }
+        } catch (error) {
+          console.error('Error loading posts:', error);
+          observer.disconnect();
+        } finally {
+          isLoading = false;
+          loader?.classList.add('hidden');
+        }
+      }
+    }, {
+      rootMargin: '400px',
+    });
+
+    observer.observe(sentinel);
+  }
+
+  document.addEventListener('astro:page-load', setupInfiniteScroll);
+</script>
