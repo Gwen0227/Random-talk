@@ -5,6 +5,7 @@ date: 2025-03-21
 tags: ['v1.3.0']
 image: './banner.png'
 authors: ['enscribe']
+pollId: "PbZqbrldvyN"  <-- 只要貼上 StrawPoll 連結最後那一串 ID
 ---
 
 ## A problem (about dead maintainers)
@@ -87,25 +88,3 @@ Absolutely do not do this for production sites (your personal blog does not coun
 But sometimes, when you're working at the bleeding edge of web development, temporary solutions like this become necessary. The better approach would be to just wait for Expressive Code to implement inline syntax highlighting. But, since it'll take a while for reasons aforementioned, I'll stick with my janky solution. This patch buys me time until either rehype-pretty-code gets maintained again and implements the feature properly, or Expressive Code adds inline code support.
 
 In the meantime, astro-erudite now has both beautiful code blocks and inline syntax highlighting. And now it's available for all of you to use!
-
-<div style={{ 
-  width: '100%', 
-  height: '350px',   /* 這個高度決定了你最後看到的範圍 */
-  overflow: 'hidden', 
-  border: '1px solid #f0f0f0', 
-  borderRadius: '15px',
-  position: 'relative'
-}}>
-  <iframe 
-    src="https://strawpoll.com/embed/PbZqbrldvyN" 
-    style={{ 
-      width: '100%', 
-      height: '500px', /* 讓內部網頁長一點 */
-      border: 'none', 
-      position: 'absolute',
-      top: '-65px',   /* 重點：把頂部 Logo 往上推 65 像素，讓它消失 */
-      left: '0'
-    }} 
-    allowFullScreen 
-  />
-</div>
