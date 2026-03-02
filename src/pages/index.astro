@@ -3,7 +3,6 @@ import BlogCard from '@/components/BlogCard.astro'
 import PageHead from '@/components/PageHead.astro'
 import { SITE } from '@/consts'
 import Layout from '@/layouts/Layout.astro'
-// 改用 getAllPosts 並進行分頁切片
 import { getAllPosts } from '@/lib/data-utils'
 
 const allPosts = await getAllPosts()
@@ -23,8 +22,8 @@ const totalPages = Math.ceil(allPosts.length / postsPerPage)
       </p>
     </div>
     <div class="p-6 pt-0">
-      <p class="text-muted-foreground text-sm">
-        這是一個基於 Astro 的簡約部落格。
+      <p class="text-muted-foreground mb-2 text-sm">
+        Welcome to my personal blog. This is a place where I share my thoughts and experiences.
       </p>
     </div>
   </section>
@@ -36,6 +35,7 @@ const totalPages = Math.ceil(allPosts.length / postsPerPage)
       id="infinite-scroll-wrapper"
       data-current-page="1" 
       data-total-pages={totalPages}
+      data-base-url={import.meta.env.BASE_URL}
     >
       <ul id="post-container" class="flex flex-col gap-y-4">
         {
@@ -67,6 +67,7 @@ const totalPages = Math.ceil(allPosts.length / postsPerPage)
 
     let currentPage = parseInt(wrapper.dataset.currentPage || '1');
     const totalPages = parseInt(wrapper.dataset.totalPages || '1');
+    const baseUrl = wrapper.dataset.baseUrl === '/' ? '' : (wrapper.dataset.baseUrl || '');
     let isLoading = false;
 
     if (currentPage >= totalPages) {
@@ -81,15 +82,15 @@ const totalPages = Math.ceil(allPosts.length / postsPerPage)
         loader?.classList.remove('hidden');
 
         try {
-          // 注意：首頁加載的是 /blog/2, /blog/3 的內容
-          const response = await fetch(`./blog/${currentPage}`);
+          // 修正：使用正確的子目錄路徑進行抓取
+          const response = await fetch(`${baseUrl}/blog/${currentPage}`);
           if (!response.ok) throw new Error('Next page not found');
           
           const html = await response.text();
           const parser = new DOMParser();
           const doc = parser.parseFromString(html, 'text/html');
           
-          // 從 /blog/x 頁面中抓取 post-container 裡的 li 列表
+          // 抓取下一頁中的文章列表
           const newPosts = doc.querySelectorAll('#post-container li');
 
           if (newPosts.length > 0 && container) {
