@@ -7,6 +7,7 @@ import { SITE } from '@/consts'
 import Layout from '@/layouts/Layout.astro'
 import { getAllPosts, groupPostsByYear } from '@/lib/data-utils'
 import type { PaginateFunction } from 'astro'
+import { cn } from '@/lib/utils'
 
 export async function getStaticPaths({
   paginate,
@@ -22,26 +23,56 @@ const { page } = Astro.props
 const postsByYear = groupPostsByYear(page.data)
 const years = Object.keys(postsByYear).sort((a, b) => parseInt(b) - parseInt(a))
 
-// --- 關鍵修正：確保分頁連結包含 GitHub Pages 的子目錄 ---
+// 處理 GitHub Pages 的子目錄路徑
 const base = import.meta.env.BASE_URL.replace(/\/$/, '')
 const paginationBaseUrl = `${base}/blog/`
 ---
 
 <Layout class="max-w-3xl">
   <PageHead slot="head" title="Blog" />
+  
   <Breadcrumbs
     items={[
-      { label: 'Blog', href: '/blog', icon: 'lucide:library-big' },
+      { label: 'Blog', href: `${base}/blog`, icon: 'lucide:library-big' },
       { label: `Page ${page.currentPage}`, icon: 'lucide:book-copy' },
     ]}
   />
 
-  <div class="flex min-h-[calc(100vh-18rem)] flex-col gap-y-8">
+  <div class="flex flex-wrap gap-3 my-8 font-sans">
+    <a 
+      href=`${base}/blog` 
+      class="flex-1 min-w-[80px] py-2.5 px-4 bg-muted/50 hover:bg-muted text-center rounded-lg transition-all border border-border/40 text-sm font-medium text-foreground"
+    >
+      All
+    </a>
+    <a 
+      href=`${base}/tags/ACG` 
+      class="flex-1 min-w-[80px] py-2.5 px-4 bg-muted/50 hover:bg-muted text-center rounded-lg transition-all border border-border/40 text-sm font-medium text-foreground"
+    >
+      ACG
+    </a>
+    <a 
+      href=`${base}/tags/Film` 
+      class="flex-1 min-w-[80px] py-2.5 px-4 bg-muted/50 hover:bg-muted text-center rounded-lg transition-all border border-border/40 text-sm font-medium text-foreground"
+    >
+      Film/Drama
+    </a>
+    <a 
+      href=`${base}/tags/Memo` 
+      class="flex-1 min-w-[80px] py-2.5 px-4 bg-muted/50 hover:bg-muted text-center rounded-lg transition-all border border-border/40 text-sm font-medium text-foreground"
+    >
+      Memo
+    </a>
+  </div>
+
+  <div class="flex min-h-[calc(100vh-18rem)] flex-col gap-y-10">
     {
       years.map((year) => (
-        <section class="flex flex-col gap-y-4">
-          <div class="font-medium text-muted-foreground">{year}</div>
-          <ul id="post-container" class="flex flex-col gap-4">
+        <section class="flex flex-col gap-y-5">
+          <div class="text-xl font-bold text-foreground/80 border-b border-border/30 pb-2 italic">
+            {year}
+          </div>
+          <ul id="post-container" class="flex flex-col gap-6">
             {postsByYear[year].map((post) => (
               <li>
                 <BlogCard entry={post} />
@@ -53,10 +84,19 @@ const paginationBaseUrl = `${base}/blog/`
     }
   </div>
 
-  <PaginationComponent
-    currentPage={page.currentPage}
-    totalPages={page.lastPage}
-    baseUrl={paginationBaseUrl}
-    client:load
-  />
+  <div class="mt-12">
+    <PaginationComponent
+      currentPage={page.currentPage}
+      totalPages={page.lastPage}
+      baseUrl={paginationBaseUrl}
+      client:load
+    />
+  </div>
 </Layout>
+
+<style>
+  /* 微調按鈕點擊感 */
+  a:active {
+    transform: scale(0.98);
+  }
+</style>
