@@ -5,55 +5,53 @@ import { SITE } from '@/consts'
 import Layout from '@/layouts/Layout.astro'
 import { getAllPosts } from '@/lib/data-utils'
 
+// 1. 獲取所有文章並設定分頁邏輯
 const allPosts = await getAllPosts()
 const postsPerPage = SITE.postsPerPage || 5
 const initialPosts = allPosts.slice(0, postsPerPage)
 const totalPages = Math.ceil(allPosts.length / postsPerPage)
+
+// 移除原本報錯的 latestPosts，直接統一使用 initialPosts 作為初始顯示
 ---
 
 <Layout class="max-w-3xl">
   <PageHead slot="head" title="Home" />
   
   <section class="flex flex-col-reverse md:flex-row items-center justify-between py-12 gap-8">
-  <div class="flex-1">
-    <h1 class="text-5xl font-bold mb-4">I'm John Doe.</h1>
-    <p class="text-gray-600 text-lg leading-relaxed">
-      A passionate web developer with a knack for creating dynamic and responsive web applications. 
-      With a background in computer science and a love for coding, I thrive on turning ideas into reality through technology.
-    </p>
-  </div>
-  <div class="w-48 h-48 bg-gray-200 rounded-full flex-shrink-0">
+    <div class="flex-1">
+      <h1 class="text-5xl font-bold mb-4 text-foreground">I'm John Doe.</h1>
+      <p class="text-muted-foreground text-lg leading-relaxed font-sans">
+        A passionate web developer with a knack for creating dynamic and responsive web applications. 
+        With a background in computer science and a love for coding, I thrive on turning ideas into reality through technology.
+      </p>
     </div>
-</section>
+    <div class="w-48 h-48 bg-muted rounded-full flex-shrink-0 overflow-hidden border-4 border-border/50 shadow-sm">
+      <img src="/avatar.jpg" alt="Avatar" class="w-full h-full object-cover opacity-0 transition-opacity" onload="this.style.opacity='1'" />
+    </div>
+  </section>
 
-<section class="mt-12">
-  <h2 class="text-2xl font-bold mb-6">Latest posts</h2>
-  <div class="space-y-6">
-    {latestPosts.map(post => <BlogCard post={post} />)}
-  </div>
-</section>
-
-  <section class="flex flex-col gap-y-4">
-    <h2 class="text-2xl font-medium">Latest posts</h2>
+  <section class="flex flex-col gap-y-4 mt-8">
+    <h2 class="text-2xl font-bold mb-4 text-foreground">Latest posts</h2>
     
     <div 
-      id="infinite-scroll-wrapper"
+      id="infinite-scroll-wrapper" 
       data-current-page="1" 
       data-total-pages={totalPages}
       data-base-url={import.meta.env.BASE_URL}
     >
-      <ul id="post-container" class="flex flex-col gap-y-4">
+      <ul id="post-container" class="flex flex-col gap-y-6">
         {
           initialPosts.map((post) => (
             <li>
+              {/* 統一使用 entry={post} 確保不報錯 */}
               <BlogCard entry={post} />
             </li>
           ))
         }
       </ul>
 
-      <div id="scroll-sentinel" class="h-20 w-full flex justify-center items-center">
-        <div id="loader" class="hidden text-sm text-muted-foreground animate-pulse">
+      <div id="scroll-sentinel" class="h-20 w-full flex justify-center items-center mt-8">
+        <div id="loader" class="hidden text-sm text-muted-foreground animate-pulse font-sans">
           Loading more posts...
         </div>
       </div>
@@ -87,7 +85,6 @@ const totalPages = Math.ceil(allPosts.length / postsPerPage)
         loader?.classList.remove('hidden');
 
         try {
-          // 修正：使用正確的子目錄路徑進行抓取
           const response = await fetch(`${baseUrl}/blog/${currentPage}`);
           if (!response.ok) throw new Error('Next page not found');
           
@@ -95,7 +92,6 @@ const totalPages = Math.ceil(allPosts.length / postsPerPage)
           const parser = new DOMParser();
           const doc = parser.parseFromString(html, 'text/html');
           
-          // 抓取下一頁中的文章列表
           const newPosts = doc.querySelectorAll('#post-container li');
 
           if (newPosts.length > 0 && container) {
